@@ -1,0 +1,232 @@
+---
+title: "Data Visualization"
+author: "Meagan Brown"
+date: '2022-08-17'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+
+# Load libraries
+library(tidyverse)
+library(here)
+library(janitor)
+
+library(patchwork)
+library(ggrepel)
+library(gghighlight)
+library(paletteer)
+library(ggExtra)
+library(ggbeeswarm)
+
+library(gapminder)
+
+library(sf)
+```
+
+### Read in lizard data
+
+```{r}
+lizards <- read_csv(here("data_tidy", "lizards.csv"))
+```
+
+```{r}
+ggplot(data = lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point()
+```
+
+Create a histogram of total lengths for all lizards in the data set
+
+```{r}
+ggplot(data = lizards,
+       aes(x = total_length)) +
+  geom_histogram(color = "orange",
+                 fill = "purple",
+                 size = 0.3,
+                 linetype = "dotted")
+```
+
+```{r}
+ggplot(data = lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point(shape = 22, 
+             color = "cyan4",
+             fill = "yellow",
+             size = 4,
+             alpha = 0.5)
+```
+
+```{r}
+ggplot(data = lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point(aes(color = common_name,
+                 size = total_length),
+             alpha = 0.5) +
+  theme_light() +
+  facet_wrap(~common_name,
+             scales = "free") #each scale is different
+```
+
+```{r}
+lizard_count <- lizards %>% 
+  group_by(common_name) %>% 
+  summarize(counts = n())
+#OR
+lizard_counts <- lizards %>% 
+  count(common_name)
+```
+
+```{r}
+#Column graph that plots value n()
+ggplot(data = lizard_count,
+       aes(y = fct_reorder(common_name, counts), #orders based on value instead of alphabetical
+           x = counts)) +
+  geom_col()
+```
+
+Create a scatterplot facteted by species for total length versus weight. The color and shape of points should differ based on species (common_name). Change the theme. Make each faceted panel have flexible axis limits (scales should be free).
+
+```{r}
+ggplot(data = lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point(aes(color = common_name,
+                 shape = common_name),
+             size = 3,
+             alpha = 0.6
+             ) +
+  facet_wrap(~common_name, scales = "free") +
+  theme_light() +
+  labs(x = "Total length (mm)",
+       y = "Weight (g)",
+       title = "Jornada Basin lizard sizes",
+       subtitle = "All lizards follow the standard length weight relatiionship",
+       caption = "Data: Jornada Basin LTER, CCBy")
+```
+
+### Fun with scales
+
+```{r}
+ggplot(data = lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point(aes(color = weight)) +
+  scale_colour_gradient(low = "blue",
+                        high = "red")
+```
+
+```{r}
+ggplot(data = lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point(aes(color = weight)) +
+  scale_colour_steps(low = "red",
+                     high = "black")
+```
+
+```{r}
+ggplot(data = lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point(aes(color = total_length)) +
+  scale_color_steps2(low = "red",
+                     mid = "white",
+                     high = "orange",
+                     midpoint = 150, 
+                     breaks = c(50, 75, 150, 180, 220, 280))
+```
+
+```{r}
+ggplot(data = lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point(aes(color = total_length)) +
+  scale_color_stepsn(colors = c("orange", "red", "purple"),
+                     breaks = seq(from = 0, 
+                                  to = 400,
+                                  by = 60))
+```
+
+Make a horizontal boxplot with common name on the y-axis, total length on the x-axis, with boxplot fill chnaging based on the common name
+
+```{r}
+lizards_median <- lizards %>% 
+  mutate(common_name = fct_reorder(common_name,
+                                   total_length,
+                                   .fun = median)) #reorder boxplot by median value 
+
+ggplot(data = lizards_median,
+       aes(y = common_name,
+           x = total_length)) +
+  geom_boxplot(aes(fill = common_name), show.legend = FALSE) +
+  scale_fill_paletteer_d(palette = "metbrew::Archambault") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(data = lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point(aes(color = weight)) +
+  theme(panel.grid.major.x = element_line(color = "white"), # make x grid lines white
+        panel.grid.minor.y = element_blank(), #remove y grid lines
+        axis.title.x = element_text(color = "purple"), # change x axis text color
+        axis.text.y = element_text(color = "green"), #change y axis text color
+        text = element_text(size = 18), 
+        panel.background = element_rect(color = "purple",
+                                        fill = "white")) +
+  annotate("text", x = 300, y = 50, label = "Woooooo", color = "magenta") +
+  geom_vline(xintercept = 250,
+             linetype = "dashed",
+             color = "orange",
+             size = 4)
+```
+
+Repulsive lables with `ggrepel`
+```{r}
+wws_lizards <- lizards %>% 
+  filter(common_name == "western whiptail",
+         site == "sand")
+
+ggplot(data = wws_lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point() +
+  geom_text_repel(aes(label = toe_num)) #off centers labels dodges
+
+gapminder %>% 
+  filter(year == 2002, 
+         continent == "Europe") %>% 
+  ggplot(aes(x = gdpPercap,
+             y = lifeExp)) +
+  geom_point() +
+  geom_text_repel(aes(label = country), size = 3)
+
+ggplot(data = lizards,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point() +
+  gghighlight(weight > 30,
+              label_key = toe_num)
+```
+
+
+### Make a map
+```{r}
+jornada_veg <- read_sf(here("data_raw", "spatial_vegetation", "doc.kml"))
+
+ggplot() +
+  geom_sf(data = jornada_veg,
+          aes(fill = Name),
+          color = NA) +
+  theme_void() +
+  scale_fill_paletteer_d(palette = "ggthemes::manyeys")
+```
+
