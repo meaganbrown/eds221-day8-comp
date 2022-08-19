@@ -53,6 +53,61 @@ ggplot(data = lizard_counts,
   theme_minimal()
 ```
 
+### Beeswarm plot
+```{r}
+whiptails <- lizards %>% 
+  filter(common_name == "western whiptail") 
+```
+
+```{r}
+ggplot(data = whiptails,
+       aes(x = sex,
+           y = weight)) +
+  geom_beeswarm(size = 0.5) +
+  geom_boxplot(fill = NA)
+  theme_minimal() 
+```
+
+### Marginal Plot
+```{r}
+whiptails <- lizards %>% 
+  filter(common_name == "western whiptail") %>% 
+  drop_na(total_length, weight) # will only drop if in this specific row/column is NA
+```
+
+```{r}
+whiptail_plot <- ggplot(data = whiptails,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point(aes(color = sex)) +
+  theme(legend.position = "bottom") +
+  theme_classic()
+
+ggMarginal(whiptail_plot, type = "boxplot", 
+           groupColour = TRUE)
+```
+
+### Patchwork
+```{r}
+whiptail_bee <- ggplot(data = whiptails,
+       aes(x = sex,
+           y = weight)) +
+  geom_beeswarm(size = 0.5) +
+  geom_boxplot(fill = NA)
+  theme_minimal()
+  
+  whiptail_plot <- ggplot(data = whiptails,
+       aes(x = total_length,
+           y = weight)) +
+  geom_point(aes(color = sex)) +
+  theme(legend.position = "bottom") +
+  theme_classic() 
+```
+
+```{r}
+(whiptail_bee * whiptail_plot) &
+  theme_classic()
+```
 
 
 ```{r}
